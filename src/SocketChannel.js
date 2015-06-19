@@ -5,7 +5,6 @@ function SocketChannel(host) {
 
     var _this = this;
     this._socket.on('famous-message', function (message) {
-        console.log(message)
         _this.onmessage({ data: message.data });
     });
 }

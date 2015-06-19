@@ -9,7 +9,7 @@
     "watch-index": "watchify src/index.js -o public/index.bundle.js -d -v",
     "watch": "npm run watch-index",
     "start": "npm run build && serve --compress public/ -p 1618",
-    "dev": "npm run watch & serve public/ -p 1618",
+    "dev": "npm run watch & serve public/ -p 1618 & nodemon server-engine.js & nodemon server-worker.js",
     "test": "npm run lint -s && npm run build",
     "lint-eslint": "eslint src/",
     "lint-jscs": "jscs src/",

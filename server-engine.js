@@ -3,9 +3,7 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
-server.listen(1619);
-
-app.use(express.static('public'));
+server.listen(1621);
 
 io.on('connection', function (socket) {
     setInterval(function() {
