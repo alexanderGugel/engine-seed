@@ -1,38 +1,75 @@
 'use strict';
 
-// Famous dependencies
 var DOMElement = require('famous/dom-renderables/DOMElement');
 var FamousEngine = require('famous/core/FamousEngine');
+var Node = require('famous/core/Node');
+var range = require('lodash.range');
+var Scroller = require('scroller');
 
-// Boilerplate code to make your life easier
 FamousEngine.init();
 
-// Initialize with a scene; then, add a 'node' to the scene root
-var logo = FamousEngine.createScene().addChild();
+var root = FamousEngine.createScene();
 
-// Create an [image] DOM element providing the logo 'node' with the 'src' path
-new DOMElement(logo, { tagName: 'img' })
-    .setAttribute('src', './images/famous_logo.png');
-
-// Chainable API
-logo
-    // Set size mode to 'absolute' to use absolute pixel values: (width 250px, height 250px)
-    .setSizeMode('absolute', 'absolute', 'absolute')
-    .setAbsoluteSize(250, 250)
-    // Center the 'node' to the parent (the screen, in this instance)
-    .setAlign(0.5, 0.5)
-    // Set the translational origin to the center of the 'node'
-    .setMountPoint(0.5, 0.5)
-    // Set the rotational origin to the center of the 'node'
-    .setOrigin(0.5, 0.5);
-
-// Add a spinner component to the logo 'node' that is called, every frame
-var spinner = logo.addComponent({
-    onUpdate: function(time) {
-        logo.setRotation(0, time / 1000, 0);
-        logo.requestUpdateOnNextTick(spinner);
+class DOMNode extends Node {
+    constructor(options) {
+        super();
+        this.el = new DOMElement(this, options);
     }
-});
+}
 
-// Let the magic begin...
-logo.requestUpdate(spinner);
+class ScrollerComponent {
+    constructor(options) {
+        this.scroller = new Scroller((left, top, zoom) => {
+            var position = this._node.getPosition();
+            this._node.setPosition(position[0] - left, position[1] - top);
+        }, options);
+        this.mousedown = false;
+    }
+    onMount(node) {
+        this._node = node;
+    }
+}
+
+class ScrollItemComponent {
+    constructor(scrollerComponent) {
+        this._scrollerComponent = scrollerComponent;
+    }
+    onMount(node) {
+        this._node = node;
+        this._node.addUIEvent('mousemove');
+        this._node.addUIEvent('mousedown');
+        this._node.addUIEvent('mouseup');
+    }
+    onReceive(type, ev) {
+        switch (type) {
+            case 'mousemove':
+                if (!this._scrollerComponent.mousedown) return;
+                this._scrollerComponent.scroller.doTouchMove([{
+                    pageX: ev.pageX,
+                    pageY: ev.pageY
+                }], ev.timeStamp);
+                break;
+            case 'mousedown':
+                this._scrollerComponent.mousedown = true;
+                this._scrollerComponent.scroller.doTouchStart([{
+                    pageX: ev.pageX,
+                    pageY: ev.pageY
+                }], ev.timeStamp);
+                break;
+            case 'mouseup':
+                if (!this._scrollerComponent.mousedown) return;
+                this._scrollerComponent.mousedown = false;
+                this._scrollerComponent.scroller.doTouchEnd(ev.timeStamp);
+                break;
+        }
+    }
+}
+
+
+var scrollerComponent = new ScrollerComponent({ scrollingX: false });
+root.addComponent(scrollerComponent);
+
+range(0, 100).map(i => root.addChild(
+    new DOMNode({ content: i, properties: { background: i % 2 ? 'red' : 'blue' } })
+        .setPosition(null, i*500).setSizeMode(null, 'absolute').setAbsoluteSize(null, 500)
+)).map(node => node.addComponent(new ScrollItemComponent(scrollerComponent)));
